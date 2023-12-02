@@ -6,17 +6,17 @@ import pickle
 
 #config servidor
 socket_servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = "0.0.0.0" #ip maquina host para testar na faculdade
+host = "localhost" #ip maquina host para testar na faculdade
 porta = 12397
 socket_servidor.bind((host, porta))
 socket_servidor.listen()
-print("Esperando jogadores...")
+print("\nEsperando jogadores...")
 
 #mensagens
 msgAguardando = "Aguardando outro jogador..."
 msgIniciando = "Iniciando partida!"
 msgAguardandoNavios = "Aguardando o outro jogador terminar de posicionar seus navios"
-msgNaviosPosicionados = 'Navios posicionados, iniciando partida'
+msgNaviosPosicionados = '\nNavios posicionados, iniciando partida'
 
 #constantes
 jogadorUm = 1
@@ -27,7 +27,7 @@ jogador = 2
 ip = 0
 porta = 1
 totalNaviosPorJogador = 3
-tamanhoResposta = 1024
+tamanho_resposta = 8192
 acertosNecessarios = 13
 
 #dicionário de jogadores
@@ -38,20 +38,20 @@ def esperaConexao(idJogador):
     socket_jogador, addr_jogador = socket_servidor.accept()
     jogadores[idJogador] = (socket_jogador, addr_jogador, Jogador(idJogador))
     enviarMensagemParaJogador(idJogador, msgAguardando)
-    print('Conexão recebida do IP: ' + jogadores[idJogador][addr][ip] + ':' + str(jogadores[idJogador][addr][porta]))
+    print('\nConexão recebida do IP: ' + jogadores[idJogador][addr][ip] + ':' + str(jogadores[idJogador][addr][porta]))
 
 def esperarCriacaoNavios(idJogador):
     while len(jogadores[idJogador][jogador].navios) < totalNaviosPorJogador:
-        b = jogadores[idJogador][socket].recv(tamanhoResposta)
+        b = jogadores[idJogador][socket].recv(tamanho_resposta)
         linha, coluna, navio = pickle.loads(b)
-        posicaoValida = jogadores[idJogador][jogador].setNavioInCampo(linha, coluna, navio.direcao, navio.tamanho)
+        posicaoValida = jogadores[idJogador][jogador].set_navio_em_campo(linha, coluna, navio.direcao, navio.tamanho)
         if posicaoValida:
             jogadores[idJogador][jogador].navios.append(navio)
 
         enviarMensagemParaJogador(idJogador, posicaoValida)
     
     enviarMensagemParaJogador(idJogador, msgAguardandoNavios)
-    print("Jogador " + str(idJogador) + " terminou de posicionar os navios.")
+    print("\nJogador " + str(idJogador) + " terminou de posicionar os navios.")
 
 def enviarMensagemParaAmbosJogadores(mensagem):
     if type(mensagem) is str:
@@ -72,22 +72,22 @@ def enviarMensagemParaJogador(idJogador, mensagem):
 def executarRodada(idJogadorVez, idJogadorEsperando):
     enviarMensagemParaJogador(idJogadorVez, True)
     enviarMensagemParaJogador(idJogadorEsperando, False)
-    envioJogador = jogadores[idJogadorVez][socket].recv(tamanhoResposta)
+    envioJogador = jogadores[idJogadorVez][socket].recv(tamanho_resposta)
     linha, coluna = pickle.loads(envioJogador)
-    acertou = jogadores[idJogadorEsperando][jogador].verificarSeTiroAcertou(linha, coluna)
+    acertou = jogadores[idJogadorEsperando][jogador].verificar_tiro(linha, coluna)
     if acertou:
         enviarMensagemParaAmbosJogadores((True, linha, coluna))
     else:
         enviarMensagemParaAmbosJogadores((False, linha, coluna))
 
 def esperaJogadores(idJogador):
-    envioJogador = jogadores[idJogador][socket].recv(tamanhoResposta)
+    envioJogador = jogadores[idJogador][socket].recv(tamanho_resposta)
 
 #início do jogo
 esperaConexao(jogadorUm)
 esperaConexao(jogadorDois)
 
-print("Preparando para iniciar a partida")
+print("\nPreparando para iniciar a partida")
 
 enviarMensagemParaAmbosJogadores(msgIniciando)
 
