@@ -15,7 +15,7 @@ class Jogador:
         else:
             return False
 
-    def setNavioInCampo(self, linha, coluna, direcao, tamanho): #posiciona um navio no campo de batalha do jogador
+    def set_navio_em_campo(self, linha, coluna, direcao, tamanho): #posiciona um navio no campo de batalha do jogador
         if(direcao == 'h'):  #se a direção for horizontal
             if(coluna + tamanho > 9):  #verifica se o navio cabe no campo na direção
                 return False
