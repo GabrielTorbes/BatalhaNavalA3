@@ -5,12 +5,12 @@ class Jogador:
         self.navios = []  #armazena os navios
         self.campo = [[0 for x in range(10)] for y in range(10)]  #campo de batalha
         self.tiros = []  #armazena os tiros do jogador
-        self.naviosAbatidos = []
-        self.partesAbatidas = 0
+        self.navios_afundados = []
+        self.partes_acertadas = 0
 
     def verificar_tiro(self, linha, coluna): #verifica se tem um navio na posição especificada pelos parâmetros linha e coluna
         if(self.campo[linha][coluna] == 1):
-            self.partesAbatidas += 1  #incrementa o contador de partes abatidas se houver um navio na posição
+            self.partes_acertadas += 1  #incrementa o contador de partes abatidas se houver um navio na posição
             return True
         else:
             return False

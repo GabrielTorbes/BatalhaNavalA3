@@ -4,12 +4,12 @@ from navio import Navio
 
 #config da conexão
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(("localhost", 12397)) #ip maquina host para testar na faculdade
+s.connect(("192.168.1.5", 12397)) #ip maquina host para testar na faculdade
 
 #inicialização de variáveis
 tiros = {}
 matriz = [[0 for x in range(10)] for y in range(10)]
-tamanho_resposta = 8192
+tamanho_resposta = 8192 #se falhar vai aumentando, começou em 1024 e dps foi para 4096
 
 mensagem_minha_vez = "\nSua vez de jogar"
 mensagem_aguardar = "\nAguarde sua rodada"
@@ -38,7 +38,7 @@ def executar_tiro():
     while True:
         try:
             linha = int(input('\nInsira a linha que deseja atirar: '))
-            coluna = int(input('\nInsira a coluna que deseja atirar: '))
+            coluna = int(input('Insira a coluna que deseja atirar: '))
 
             if verifica_entrada(linha) and verifica_entrada(coluna):
                 if (linha, coluna) not in tiros:
@@ -59,7 +59,7 @@ def validar_tamanho(entrada, tamanho):
 def posicionar_navio(navio):
     print(f"\nPosicione o {navio.nome} no campo de batalha.")
 
-    navio.direcao = input("Entre com a direção do barco (v-Vertical, h-Horizontal): ")
+    navio.direcao = input("\nEntre com a direção do barco (v-Vertical, h-Horizontal): ")
     while navio.direcao not in ['v', 'h']:
         print('Entrada incorreta, tente novamente.')
         navio.direcao = input("Entre com a direção do barco (v-Vertical, h-Horizontal): ")
@@ -78,7 +78,7 @@ def posicionar_navio(navio):
 
     return linha, coluna, navio
 
-def receber_e_imprimir(): #possivel erro no online
+def receber_e_imprimir(): #possivel erro no online de de desserializar bytes
     msg = s.recv(tamanho_resposta)
     print(msg)
     #print(msg.decode('ascii')) teste tbm
@@ -94,14 +94,14 @@ for i in range(3):
         posicao = posicionar_navio(navios[i])
         s.send(pickle.dumps(posicao))
 
-        posicaoValida = pickle.loads(s.recv(tamanho_resposta))
+        posicao_valida = pickle.loads(s.recv(tamanho_resposta))
 
-        if posicaoValida:
+        if posicao_valida:
             break
         else:
             print(f"Já existe um barco posicionado aqui, linha {posicao[0]} e coluna {posicao[1]}")
 
-receber_e_imprimir() #erro aqui tbm, sendo que os dois receber_e_imprimir() funcionam com para cada jogador 
+receber_e_imprimir() #os dois receber_e_imprimir() funcionam para cada jogador 
 receber_e_imprimir()
 
 #parte principal do jogo, verificar mudanças dps
@@ -145,7 +145,8 @@ while True: #aterado
             print("Seu adversário ganhou a partida!")
         break
     else:
-        s.send("continuar?".encode('ascii'))
+        #s.send("continuar?".encode('ascii')) testar tbm
+        s.send("continuar?".encode('UTF-8'))
 
 # Fim da conexão
 s.close()

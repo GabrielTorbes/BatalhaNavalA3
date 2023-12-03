@@ -1,98 +1,98 @@
-from navio import Navio 
+from navio import Navio
 from jogador import Jogador
 import socket
 from threading import Thread
 import pickle
 
-#config servidor
+# Configuração do servidor
 socket_servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = "localhost" #ip maquina host para testar na faculdade
+host = "192.168.1.5"  # IP da máquina host para testar na faculdade
 porta = 12397
 socket_servidor.bind((host, porta))
 socket_servidor.listen()
 print("\nEsperando jogadores...")
 
-#mensagens
-msgAguardando = "Aguardando outro jogador..."
-msgIniciando = "Iniciando partida!"
-msgAguardandoNavios = "Aguardando o outro jogador terminar de posicionar seus navios"
-msgNaviosPosicionados = '\nNavios posicionados, iniciando partida'
+# Mensagens
+mensagem_de_espera = "Aguardando outro jogador..."
+mensagem_inicio = "\nPreparem-se para a batalha, que Poseidon tenha piedade dos navios e dos marinheiros!"
+mensagem_de_espera_navios = "Aguardando o outro jogador"
+mensagem_navio_posicionado = '\nIniciando partida!'
 
-#constantes
-jogadorUm = 1
-jogadorDois = 2
-socket = 0
-addr = 1
-jogador = 2
-ip = 0
-porta = 1
-totalNaviosPorJogador = 3
-tamanho_resposta = 8192
-acertosNecessarios = 13
+# Constantes
+jogador_um = 1
+jogador_dois = 2
+socketIdx = 0
+addrIdx = 1
+jogadorIdx = 2
+ipIdx = 0
+portaIdx = 1
+navios_por_jogador = 3  # Para teste, deixar baixo o total de navios
+tamanho_resposta = 8192 #aumentar no cliente tbm para testes
+acertos_necessarios = 13
 
-#dicionário de jogadores
+# Dicionário de jogadores
 jogadores = {}
 
-#funções
-def esperaConexao(idJogador):
+# Funções
+def aguardar_conectar(idJogador): #aguarda conexão do jogador
     socket_jogador, addr_jogador = socket_servidor.accept()
     jogadores[idJogador] = (socket_jogador, addr_jogador, Jogador(idJogador))
-    enviarMensagemParaJogador(idJogador, msgAguardando)
-    print('\nConexão recebida do IP: ' + jogadores[idJogador][addr][ip] + ':' + str(jogadores[idJogador][addr][porta]))
+    mensagem_para_jogador(idJogador, mensagem_de_espera)
+    print('\nConexão recebida do IP: ' + jogadores[idJogador][addrIdx][ipIdx] + ':' + str(jogadores[idJogador][addrIdx][portaIdx]))
 
-def esperarCriacaoNavios(idJogador):
-    while len(jogadores[idJogador][jogador].navios) < totalNaviosPorJogador:
-        b = jogadores[idJogador][socket].recv(tamanho_resposta)
+def criar_navios(idJogador): #aguarda a criação e posicionamento dos navios pelo jogador
+    while len(jogadores[idJogador][jogadorIdx].navios) < navios_por_jogador:
+        b = jogadores[idJogador][socketIdx].recv(tamanho_resposta)
         linha, coluna, navio = pickle.loads(b)
-        posicaoValida = jogadores[idJogador][jogador].set_navio_em_campo(linha, coluna, navio.direcao, navio.tamanho)
-        if posicaoValida:
-            jogadores[idJogador][jogador].navios.append(navio)
+        posicao_valida = jogadores[idJogador][jogadorIdx].set_navio_em_campo(linha, coluna, navio.direcao, navio.tamanho) #trocas
+        if posicao_valida:
+            jogadores[idJogador][jogadorIdx].navios.append(navio)
 
-        enviarMensagemParaJogador(idJogador, posicaoValida)
-    
-    enviarMensagemParaJogador(idJogador, msgAguardandoNavios)
+        mensagem_para_jogador(idJogador, posicao_valida) #trocas
+
+    mensagem_para_jogador(idJogador, mensagem_de_espera_navios)
     print("\nJogador " + str(idJogador) + " terminou de posicionar os navios.")
 
-def enviarMensagemParaAmbosJogadores(mensagem):
+def mensagens_para_ambos(mensagem): #envia mensagem para ambos os jogadores
     if type(mensagem) is str:
         for j in jogadores.values():
-            j[socket].send(mensagem.encode('ascii'))
+            j[socketIdx].send(mensagem.encode('ascii'))
     else:
         for j in jogadores.values():
             msgBytes = pickle.dumps(mensagem)
-            j[socket].send(msgBytes)
+            j[socketIdx].send(msgBytes)
 
-def enviarMensagemParaJogador(idJogador, mensagem):
+def mensagem_para_jogador(idJogador, mensagem): #envia mensagem para um jogador
     if type(mensagem) is str:
-        jogadores[idJogador][socket].send(mensagem.encode('ascii'))
+        jogadores[idJogador][socketIdx].send(mensagem.encode('ascii'))
     else:
         msgBytes = pickle.dumps(mensagem)
-        jogadores[idJogador][socket].send(msgBytes)
+        jogadores[idJogador][socketIdx].send(msgBytes)
 
-def executarRodada(idJogadorVez, idJogadorEsperando):
-    enviarMensagemParaJogador(idJogadorVez, True)
-    enviarMensagemParaJogador(idJogadorEsperando, False)
-    envioJogador = jogadores[idJogadorVez][socket].recv(tamanho_resposta)
+def executar_rodada(idJogadorVez, idJogadorEsperando): #executa uma rodada do jogo
+    mensagem_para_jogador(idJogadorVez, True)
+    mensagem_para_jogador(idJogadorEsperando, False)
+    envioJogador = jogadores[idJogadorVez][socketIdx].recv(tamanho_resposta)
     linha, coluna = pickle.loads(envioJogador)
-    acertou = jogadores[idJogadorEsperando][jogador].verificar_tiro(linha, coluna)
+    acertou = jogadores[idJogadorEsperando][jogadorIdx].verificar_tiro(linha, coluna)
     if acertou:
-        enviarMensagemParaAmbosJogadores((True, linha, coluna))
+        mensagens_para_ambos((True, linha, coluna))
     else:
-        enviarMensagemParaAmbosJogadores((False, linha, coluna))
+        mensagens_para_ambos((False, linha, coluna))
 
-def esperaJogadores(idJogador):
-    envioJogador = jogadores[idJogador][socket].recv(tamanho_resposta)
+def aguardar_jogadores(idJogador): #aguarda ações dos jogadores
+    envioJogador = jogadores[idJogador][socketIdx].recv(tamanho_resposta)
 
-#início do jogo
-esperaConexao(jogadorUm)
-esperaConexao(jogadorDois)
+# Início do jogo
+aguardar_conectar(jogador_um)
+aguardar_conectar(jogador_dois)
 
 print("\nPreparando para iniciar a partida")
 
-enviarMensagemParaAmbosJogadores(msgIniciando)
+mensagens_para_ambos(mensagem_inicio)
 
-t1 = Thread(target=esperarCriacaoNavios, args=(jogadorUm,))
-t2 = Thread(target=esperarCriacaoNavios, args=(jogadorDois,))
+t1 = Thread(target=criar_navios, args=(jogador_um,))
+t2 = Thread(target=criar_navios, args=(jogador_dois,))
 
 t1.start()
 t2.start()
@@ -100,42 +100,42 @@ t2.start()
 t1.join()
 t2.join()
 
-print(msgNaviosPosicionados)
-enviarMensagemParaAmbosJogadores(msgNaviosPosicionados)
+print(mensagem_navio_posicionado)
+mensagens_para_ambos(mensagem_navio_posicionado)
 
-turno = jogadorUm
+turno = jogador_um
 
 while True:
-    if turno == jogadorUm:
-        executarRodada(jogadorUm, jogadorDois)
-        turno = jogadorDois
+    if turno == jogador_um:
+        executar_rodada(jogador_um, jogador_dois)
+        turno = jogador_dois
     else:
-        executarRodada(jogadorDois, jogadorUm)
-        turno = jogadorUm
+        executar_rodada(jogador_dois, jogador_um)
+        turno = jogador_um
 
-    #verificar se há um vencedor
-    if jogadores[jogadorUm][jogador].partesAbatidas == acertosNecessarios:
+    # Verificar se há um vencedor
+    if jogadores[jogador_um][jogadorIdx].partes_acertadas == acertos_necessarios:
         print("Acabou1")
-        mensagemJogadorUm = (True, False)
-        mensagemJogadorDois = (True, True)
-        
-        enviarMensagemParaJogador(jogadorUm, mensagemJogadorUm)
-        enviarMensagemParaJogador(jogadorDois, mensagemJogadorDois)
+        mensagem_jogador_um = (True, False)
+        mensagem_jogador_dois = (True, True)
+
+        mensagem_para_jogador(jogador_um, mensagem_jogador_um)
+        mensagem_para_jogador(jogador_dois, mensagem_jogador_dois)
         break
 
-    elif jogadores[jogadorDois][jogador].partesAbatidas == acertosNecessarios:
+    elif jogadores[jogador_dois][jogadorIdx].partes_acertadas == acertos_necessarios:
         print("Acabou2")
-        mensagemJogadorUm = (True, True)
-        mensagemJogadorDois = (True, False)
-        
-        enviarMensagemParaJogador(jogadorUm, mensagemJogadorUm)
-        enviarMensagemParaJogador(jogadorDois, mensagemJogadorDois)
+        mensagem_jogador_um = (True, True)
+        mensagem_jogador_dois = (True, False)
+
+        mensagem_para_jogador(jogador_um, mensagem_jogador_um)
+        mensagem_para_jogador(jogador_dois, mensagem_jogador_dois)
         break
     else:
-        enviarMensagemParaAmbosJogadores((False, False))
+        mensagens_para_ambos((False, False))
 
-        t1 = Thread(target=esperaJogadores, args=(jogadorUm,))
-        t2 = Thread(target=esperaJogadores, args=(jogadorDois,))
+        t1 = Thread(target=aguardar_jogadores, args=(jogador_um,))
+        t2 = Thread(target=aguardar_jogadores, args=(jogador_dois,))
 
         t1.start()
         t2.start()
@@ -143,6 +143,6 @@ while True:
         t1.join()
         t2.join()
 
-#fim da conexão
-jogadores[jogadorUm][socket].close()
-jogadores[jogadorDois][socket].close()
+# Fim da conexão
+jogadores[jogador_um][socketIdx].close()
+jogadores[jogador_dois][socketIdx].close()
